@@ -1,7 +1,8 @@
-import { BrowserWindow, session } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as semver from 'semver';
+
+import { BrowserWindow, session } from 'electron';
 
 import downloadChromeExtension from './downloadChromeExtension';
 import { getPath } from './utils';
@@ -46,6 +47,7 @@ interface ExtensionOptions {
 const install = (
   extensionReference: ExtensionReference | string | Array<ExtensionReference | string>,
   options: ExtensionOptions | boolean = {},
+  electronSession = session.defaultSession,
 ): Promise<string> => {
   // Support old forceDownload syntax
   if (typeof options === 'boolean') {
@@ -87,10 +89,10 @@ const install = (
   let extensionInstalled: boolean;
 
   // For Electron >=9.
-  if ((session.defaultSession as any).getExtension) {
+  if ((electronSession as any).getExtension) {
     extensionInstalled =
       !!extensionName &&
-      (session.defaultSession as any)
+      (electronSession as any)
         .getAllExtensions()
         .find((e: { name: string }) => e.name === extensionName);
   } else {
@@ -107,19 +109,19 @@ const install = (
     // Use forceDownload, but already installed
     if (extensionInstalled) {
       // For Electron >=9.
-      if ((session.defaultSession as any).removeExtension) {
-        const extensionId = (session.defaultSession as any)
+      if ((electronSession as any).removeExtension) {
+        const extensionId = (electronSession as any)
           .getAllExtensions()
           .find((e: { name: string }) => e.name).id;
-        (session.defaultSession as any).removeExtension(extensionId);
+        (electronSession as any).removeExtension(extensionId);
       } else {
         BrowserWindow.removeDevToolsExtension(extensionName);
       }
     }
 
     // For Electron >=9.
-    if ((session.defaultSession as any).loadExtension) {
-      return (session.defaultSession as any)
+    if ((electronSession as any).loadExtension) {
+      return (electronSession as any)
         .loadExtension(extensionFolder, loadExtensionOptions)
         .then((ext: { name: string }) => {
           return Promise.resolve(ext.name);
